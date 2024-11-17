@@ -45,6 +45,15 @@ async def get_mission(mission_id: int, db: AsyncSession = Depends(get_db)):
     return mission
 
 
+@router.post("/{mission_id}/assign", response_model=Mission)
+async def assign_cat(
+    mission_id: int,
+    cat_id: int,
+    db: AsyncSession = Depends(get_db),
+):
+    return await assign_cat_to_mission(db, mission_id, cat_id)
+
+
 @router.patch("/targets/{target_id}", response_model=Target)
 async def update_target(
     target_id: int,
@@ -60,15 +69,6 @@ async def mark_target_complete(
     db: AsyncSession = Depends(get_db),
 ):
     return await mark_target_completed(db, target_id)
-
-
-@router.put("/{mission_id}/assign", response_model=Mission)
-async def assign_cat(
-    mission_id: int,
-    cat_id: int,
-    db: AsyncSession = Depends(get_db),
-):
-    return await assign_cat_to_mission(db, mission_id, cat_id)
 
 
 @router.delete("/{mission_id}", status_code=204)
