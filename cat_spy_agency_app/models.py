@@ -1,8 +1,8 @@
-from typing import Any
+from enum import Enum as PyEnum
+
 from sqlalchemy import String, ForeignKey, Enum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.ext.declarative import declarative_base
-from enum import Enum as PyEnum
 
 Base = declarative_base()
 

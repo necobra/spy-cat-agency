@@ -3,8 +3,7 @@ from sqlalchemy.future import select
 from fastapi import HTTPException
 from sqlalchemy.orm import selectinload
 
-from cat_spy_agency_app.models import SpyCat, Mission, CompleteState
-from cat_spy_agency_app.schemas import Target
+from cat_spy_agency_app.models import SpyCat
 
 
 async def validate_spy_cat(db: AsyncSession, cat_id: int) -> SpyCat:

@@ -1,8 +1,7 @@
-from typing import List, Optional
-from pydantic import BaseModel, Field, field_validator, ConfigDict
-from functools import lru_cache
 from enum import Enum
-import httpx
+from typing import List, Optional
+
+from pydantic import BaseModel, Field, field_validator, ConfigDict
 
 
 class CompleteState(str, Enum):

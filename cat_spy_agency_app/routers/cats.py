@@ -1,8 +1,10 @@
+from typing import List
+
 from aiocache import cached
 import httpx
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import List
+
 from dependencies import get_db
 from cat_spy_agency_app.schemas import SpyCat, SpyCatCreate
 from cat_spy_agency_app.crud import (

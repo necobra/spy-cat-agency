@@ -1,9 +1,10 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+import uvicorn
+
 from cat_spy_agency_app.routers.cats import router as cat_router
 from cat_spy_agency_app.routers.missions import router as mission_router
 from database import init_db
-import uvicorn
 
 
 async def lifespan(app: FastAPI):

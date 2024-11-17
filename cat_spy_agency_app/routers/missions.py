@@ -1,6 +1,7 @@
+from typing import List
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import List
 
 from dependencies import get_db
 from cat_spy_agency_app.crud import (
