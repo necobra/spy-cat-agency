@@ -11,6 +11,7 @@ from cat_spy_agency_app.models import (
     SpyCat,
     Mission,
     Target,
+    CompleteState,
 )
 from cat_spy_agency_app import schemas
 
@@ -61,7 +62,9 @@ async def update_spy_cat_salary(
 
 async def list_spy_cats(db: AsyncSession) -> list[schemas.SpyCat]:
     result = await db.execute(
-        select(SpyCat).options(selectinload(SpyCat.missions))
+        select(SpyCat).options(
+            selectinload(SpyCat.missions).selectinload(Mission.targets)
+        )
     )
     cats = result.scalars().all()
     return list(cats)
@@ -71,7 +74,7 @@ async def get_spy_cat(db: AsyncSession, cat_id: int) -> schemas.SpyCat:
     result = await db.execute(
         select(SpyCat)
         .where(SpyCat.id == cat_id)
-        .options(selectinload(SpyCat.missions))
+        .options(selectinload(SpyCat.missions).selectinload(Mission.targets))
     )
     cat = result.scalars().first()
     if not cat:
@@ -116,7 +119,7 @@ async def create_mission(
 
 
 async def delete_mission(db: AsyncSession, mission_id: int) -> None:
-    mission = await get_mission(db, mission_id)
+    mission = await get_mission_by_id(db, mission_id)
     if mission.spy_cat:
         raise HTTPException(
             status_code=400,
@@ -126,35 +129,35 @@ async def delete_mission(db: AsyncSession, mission_id: int) -> None:
     await db.commit()
 
 
-async def update_mission_targets(
-    db: AsyncSession, mission_id: int, update_data: schemas.MissionUpdate
-) -> Mission:
-    mission = await get_mission(db, mission_id)
+async def partial_update_target(
+    db: AsyncSession, target_id: int, update_data: schemas.TargetUpdate
+) -> Target:
+    result = await db.execute(select(Target).where(Target.id == target_id))
+    target = result.scalars().first()
 
-    for target_data in update_data.targets:
-        result = await db.execute(
-            select(Target).where(Target.id == target_data.id)
+    if not target:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Target with ID {target_id} not found",
         )
-        target = result.scalars().first()
-        if not target:
-            raise HTTPException(
-                status_code=404,
-                detail=f"Target with ID {target_data.id} not found",
-            )
-        if target.complete_state == "completed":
-            raise HTTPException(
-                status_code=400,
-                detail=f"Cannot update completed target with ID {target.id}",
-            )
-        target.notes = target_data.notes
-        db.add(target)
 
+    if target.complete_state == CompleteState.COMPLETED:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Cannot update a completed target with ID {target.id}",
+        )
+
+    if update_data.notes is not None:
+        target.notes = update_data.notes
+
+    db.add(target)
     await db.commit()
-    await db.refresh(mission)
-    return mission
+    await db.refresh(target)
+
+    return target
 
 
-async def mark_target_complete(db: AsyncSession, target_id: int) -> Target:
+async def mark_target_completed(db: AsyncSession, target_id: int) -> Target:
     result = await db.execute(
         select(Target)
         .where(Target.id == target_id)
@@ -163,13 +166,13 @@ async def mark_target_complete(db: AsyncSession, target_id: int) -> Target:
     target = result.scalars().first()
     if not target:
         raise HTTPException(status_code=404, detail="Target not found")
-    if target.complete_state == "completed":
+    if target.complete_state == CompleteState.COMPLETED:
         raise HTTPException(
             status_code=400,
             detail="Target is already marked as completed",
         )
 
-    target.complete_state = "completed"
+    target.complete_state = CompleteState.COMPLETED
     await db.commit()
 
     mission = target.mission
@@ -177,9 +180,10 @@ async def mark_target_complete(db: AsyncSession, target_id: int) -> Target:
         select(Target).where(Target.mission_id == mission.id)
     )
     if all(
-        t.complete_state == "completed" for t in all_targets.scalars().all()
+        t.complete_state == CompleteState.COMPLETED
+        for t in all_targets.scalars().all()
     ):
-        mission.complete_state = "completed"
+        mission.complete_state = CompleteState.COMPLETED
         await db.commit()
 
     await db.refresh(target)
@@ -197,25 +201,23 @@ async def list_missions(db: AsyncSession) -> list[schemas.Mission]:
     return list(missions)
 
 
-async def get_mission(db: AsyncSession, mission_id: int) -> Mission:
+async def get_mission_by_id(db: AsyncSession, mission_id: int) -> Mission:
     result = await db.execute(
         select(Mission)
         .where(Mission.id == mission_id)
         .options(
-            joinedload(Mission.spy_cat),
-            joinedload(Mission.targets),
+            selectinload(Mission.targets),
+            selectinload(Mission.spy_cat),
         )
     )
     mission = result.scalars().first()
-    if not mission:
-        raise HTTPException(status_code=404, detail="Mission not found")
     return mission
 
 
 async def assign_cat_to_mission(
     db: AsyncSession, mission_id: int, cat_id: int
 ) -> Mission:
-    mission = await get_mission(db, mission_id)
+    mission = await get_mission_by_id(db, mission_id)
     if mission.spy_cat:
         raise HTTPException(
             status_code=400, detail="Mission is already assigned to a cat"

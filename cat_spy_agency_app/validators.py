@@ -27,7 +27,7 @@ async def validate_spy_cat(db: AsyncSession, cat_id: int) -> SpyCat:
     return cat
 
 
-def validate_target_count(targets: list[Target]) -> None:
+def validate_target_count(targets: list) -> None:
     if len(targets) < 1 or len(targets) > 3:
         raise HTTPException(
             status_code=400,

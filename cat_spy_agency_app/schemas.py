@@ -29,23 +29,25 @@ class Target(TargetBase):
     model_config = ConfigDict(from_attributes=True)
 
 
+class TargetUpdate(BaseModel):
+    notes: Optional[str]
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class MissionBase(BaseModel):
     complete_state: CompleteState = CompleteState.IN_PROGRESS
     targets: List[Target] = Field(default_factory=list)
-    spy_cat_id: Optional[int]
+    spy_cat_id: Optional[int] = None
 
 
 class MissionCreate(MissionBase):
-    pass
+    targets: List[TargetBase] = Field(default_factory=list)
 
 
 class Mission(MissionBase):
     id: int
     model_config = ConfigDict(from_attributes=True)
-
-
-class MissionUpdate(BaseModel):
-    targets: List[Target] = Field(default_factory=list)
 
 
 class SpyCatBase(BaseModel):
